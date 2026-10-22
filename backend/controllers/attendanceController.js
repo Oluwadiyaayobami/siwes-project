@@ -64,7 +64,7 @@ const startSession = async (req, res) => {
       expiresAt,
       latitude: parseFloat(latitude),
       longitude: parseFloat(longitude),
-      radiusMeters: (!isNaN(parseInt(radiusMeters, 10)) && parseInt(radiusMeters, 10) >= 0) ? parseInt(radiusMeters, 10) : 300,
+      radiusMeters: (!isNaN(parseInt(radiusMeters, 10)) && parseInt(radiusMeters, 10) >= 0) ? parseInt(radiusMeters, 10) : 400,
       otpCode,
       attendees: []
     });
@@ -242,7 +242,7 @@ const updateSessionRadius = async (req, res) => {
     }
 
     const parsedRadius = parseInt(radiusMeters, 10);
-    session.radiusMeters = (!isNaN(parsedRadius) && parsedRadius >= 0) ? parsedRadius : 300;
+    session.radiusMeters = (!isNaN(parsedRadius) && parsedRadius >= 0) ? parsedRadius : 400;
     await session.save();
 
     res.status(200).json({

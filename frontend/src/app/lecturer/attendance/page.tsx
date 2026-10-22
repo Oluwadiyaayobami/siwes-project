@@ -57,7 +57,7 @@ export default function LecturerAttendance() {
   const [selectedCourse, setSelectedCourse] = useState("");
   const [sessionTitle, setSessionTitle] = useState("");
   const [duration, setDuration] = useState("15");
-  const [radiusMeters, setRadiusMeters] = useState("300");
+  const [radiusMeters, setRadiusMeters] = useState("400");
   const [startingSession, setStartingSession] = useState(false);
   const [updatingRadius, setUpdatingRadius] = useState(false);
 
@@ -484,11 +484,10 @@ export default function LecturerAttendance() {
                             onChange={(e) => setRadiusMeters(e.target.value)}
                             className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm font-semibold rounded-2xl focus:ring-[#0F5A37] focus:border-[#0F5A37] block p-4 outline-none"
                           >
-                            <option value="100">100 Meters (Strict Line of Sight)</option>
-                            <option value="250">250 Meters (Standard Hall)</option>
-                            <option value="300">300 Meters (Recommended — Wi-Fi/Laptop Buffer)</option>
-                            <option value="500">500 Meters (Campus Wing / Large Hall)</option>
-                            <option value="1000">1,000 Meters (Campus Perimeter)</option>
+                            <option value="300">300 Meters (Standard Lecture Hall)</option>
+                            <option value="400">400 Meters (Recommended Base — Campus Hall Buffer)</option>
+                            <option value="500">500 Meters (Large Auditorium / Complex)</option>
+                            <option value="800">800 Meters (Campus Wing)</option>
                             <option value="0">No Distance Restriction (Allow Anywhere / Testing)</option>
                           </select>
                         </div>
@@ -685,10 +684,10 @@ export default function LecturerAttendance() {
                       Quick Adjust:
                     </span>
                     {[
-                      { label: "150m", value: 150 },
-                      { label: "300m (Rec)", value: 300 },
+                      { label: "300m", value: 300 },
+                      { label: "400m (Base)", value: 400 },
                       { label: "500m", value: 500 },
-                      { label: "1000m", value: 1000 },
+                      { label: "800m", value: 800 },
                       { label: "Unlimited", value: 0 }
                     ].map((preset) => (
                       <button

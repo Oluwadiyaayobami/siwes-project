@@ -43,7 +43,7 @@ const attendanceSessionSchema = new mongoose.Schema({
   },
   radiusMeters: {
     type: Number,
-    default: 100
+    default: 400
   },
   otpCode: {
     type: String,
