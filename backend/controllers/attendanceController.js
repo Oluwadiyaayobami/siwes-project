@@ -64,7 +64,7 @@ const startSession = async (req, res) => {
       expiresAt,
       latitude: parseFloat(latitude),
       longitude: parseFloat(longitude),
-      radiusMeters: parseInt(radiusMeters, 10) || 100,
+      radiusMeters: (!isNaN(parseInt(radiusMeters, 10)) && parseInt(radiusMeters, 10) >= 0) ? parseInt(radiusMeters, 10) : 300,
       otpCode,
       attendees: []
     });
@@ -221,6 +221,40 @@ const closeSession = async (req, res) => {
   }
 };
 
+// @desc    Update geofence radius of active session
+// @route   PUT /api/attendance/session/:id/update-radius
+// @access  Private (Lecturer/Supervisor/Admin)
+const updateSessionRadius = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { radiusMeters } = req.body;
+
+    const session = await AttendanceSession.findById(id)
+      .populate('course', 'title courseCode enrolledStudents')
+      .populate('attendees.student', 'name email matricNo avatar');
+
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+
+    if (session.lecturer.toString() !== req.user.id && req.user.role === 'lecturer') {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    const parsedRadius = parseInt(radiusMeters, 10);
+    session.radiusMeters = (!isNaN(parsedRadius) && parsedRadius >= 0) ? parsedRadius : 300;
+    await session.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Geofence radius updated to ${session.radiusMeters === 0 ? 'No Restriction (Unlimited)' : session.radiusMeters + 'm'}`,
+      data: session
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // @desc    Get session details with full attendance list
 // @route   GET /api/attendance/session/:id
 // @access  Private
@@ -354,7 +388,7 @@ const manualMarkStudent = async (req, res) => {
 // @access  Private (Student)
 const checkIn = async (req, res) => {
   try {
-    const { qrToken, otpCode, studentLat, studentLng } = req.body;
+    const { qrToken, otpCode, studentLat, studentLng, studentAccuracy } = req.body;
 
     if (!qrToken && !otpCode) {
       return res.status(400).json({ success: false, message: 'Please provide QR token or OTP code' });
@@ -475,24 +509,36 @@ const checkIn = async (req, res) => {
       session.longitude
     );
 
-    if (distance > session.radiusMeters) {
-      // Log rejected attempt for academic integrity records
-      await Attendance.create({
-        student: req.user.id,
-        course: session.course._id,
-        session: session._id,
-        status: 'REJECTED_OUT_OF_BOUNDS',
-        method,
-        distance: Math.round(distance),
-        coordinates: { latitude: studentLat, longitude: studentLng }
-      });
+    // If session.radiusMeters is 0, distance restriction is disabled (test or remote mode)
+    if (session.radiusMeters > 0) {
+      // Browser GPS indoors has typical accuracy jitter between 50m - 200m
+      const reportedAccuracy = parseFloat(studentAccuracy);
+      const accuracyTolerance = (!isNaN(reportedAccuracy) && reportedAccuracy > 0)
+        ? Math.min(Math.max(reportedAccuracy, 50), 300)
+        : 150; // default 150m indoor buffer
 
-      return res.status(400).json({
-        success: false,
-        message: `Geofence check failed: You are ${Math.round(distance)}m away from the lecture hall. Maximum allowed radius is ${session.radiusMeters}m.`,
-        distance: Math.round(distance),
-        allowedRadius: session.radiusMeters
-      });
+      const effectiveRadius = session.radiusMeters + accuracyTolerance;
+
+      if (distance > effectiveRadius) {
+        // Log rejected attempt for academic integrity records
+        await Attendance.create({
+          student: req.user.id,
+          course: session.course._id,
+          session: session._id,
+          status: 'REJECTED_OUT_OF_BOUNDS',
+          method,
+          distance: Math.round(distance),
+          coordinates: { latitude: studentLat, longitude: studentLng }
+        });
+
+        return res.status(400).json({
+          success: false,
+          message: `Geofence check failed: You are ${Math.round(distance)}m away from the lecture hall. Allowed radius is ${session.radiusMeters}m (plus ${Math.round(accuracyTolerance)}m indoor GPS drift tolerance). If you are in class, ask your lecturer to expand the session radius.`,
+          distance: Math.round(distance),
+          allowedRadius: session.radiusMeters,
+          effectiveRadius: Math.round(effectiveRadius)
+        });
+      }
     }
 
     // 6. Record Successful Attendance
@@ -623,6 +669,7 @@ module.exports = {
   getActiveSession,
   refreshToken,
   closeSession,
+  updateSessionRadius,
   getSessionDetails,
   getLecturerSessions,
   manualMarkStudent,

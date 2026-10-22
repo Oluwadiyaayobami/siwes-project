@@ -57,11 +57,12 @@ export default function LecturerAttendance() {
   const [selectedCourse, setSelectedCourse] = useState("");
   const [sessionTitle, setSessionTitle] = useState("");
   const [duration, setDuration] = useState("15");
-  const [radiusMeters, setRadiusMeters] = useState("100");
+  const [radiusMeters, setRadiusMeters] = useState("300");
   const [startingSession, setStartingSession] = useState(false);
+  const [updatingRadius, setUpdatingRadius] = useState(false);
 
   // Geolocation State for Lecturer
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number; accuracy?: number } | null>(null);
   const [geoStatus, setGeoStatus] = useState<"locating" | "acquired" | "failed">("locating");
   const [geoError, setGeoError] = useState("");
 
@@ -96,7 +97,8 @@ export default function LecturerAttendance() {
         (pos) => {
           setCoords({
             lat: pos.coords.latitude,
-            lng: pos.coords.longitude
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy
           });
           setGeoStatus("acquired");
         },
@@ -246,6 +248,25 @@ export default function LecturerAttendance() {
       toast.error(err.response?.data?.message || "Failed to start attendance session");
     } finally {
       setStartingSession(false);
+    }
+  };
+
+  // Live Geofence Radius Update Handler
+  const handleUpdateRadius = async (newRadius: number) => {
+    if (!activeSession) return;
+    try {
+      setUpdatingRadius(true);
+      const res = await api.put(`/attendance/session/${activeSession._id}/update-radius`, {
+        radiusMeters: newRadius
+      });
+      if (res.data.success) {
+        toast.success(res.data.message || "Radius updated successfully");
+        setActiveSession((prev) => prev ? { ...prev, radiusMeters: newRadius } : null);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to update radius");
+    } finally {
+      setUpdatingRadius(false);
     }
   };
 
@@ -463,10 +484,12 @@ export default function LecturerAttendance() {
                             onChange={(e) => setRadiusMeters(e.target.value)}
                             className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm font-semibold rounded-2xl focus:ring-[#0F5A37] focus:border-[#0F5A37] block p-4 outline-none"
                           >
-                            <option value="50">50 Meters (Strict Classroom)</option>
-                            <option value="100">100 Meters (Standard Hall)</option>
-                            <option value="200">200 Meters (Large Auditorium)</option>
-                            <option value="500">500 Meters (Campus Wing)</option>
+                            <option value="100">100 Meters (Strict Line of Sight)</option>
+                            <option value="250">250 Meters (Standard Hall)</option>
+                            <option value="300">300 Meters (Recommended — Wi-Fi/Laptop Buffer)</option>
+                            <option value="500">500 Meters (Campus Wing / Large Hall)</option>
+                            <option value="1000">1,000 Meters (Campus Perimeter)</option>
+                            <option value="0">No Distance Restriction (Allow Anywhere / Testing)</option>
                           </select>
                         </div>
                       </div>
@@ -488,11 +511,20 @@ export default function LecturerAttendance() {
                             </h4>
                             <p className="text-xs font-medium text-emerald-800 mt-1">
                               {coords ? (
-                                <>Anchor: Lat {coords.lat.toFixed(4)}, Lng {coords.lng.toFixed(4)}. Students must be within {radiusMeters}m.</>
+                                <>
+                                  Anchor: Lat {coords.lat.toFixed(4)}, Lng {coords.lng.toFixed(4)}.
+                                  {radiusMeters === "0" ? " Geofence: Disabled (Anywhere)." : ` Students must be within ${radiusMeters}m.`}
+                                </>
                               ) : (
                                 "Acquiring your classroom GPS coordinates..."
                               )}
                             </p>
+                            {coords?.accuracy && (
+                              <p className="text-[11px] font-semibold text-emerald-700 mt-0.5">
+                                Current device positioning accuracy: ±{Math.round(coords.accuracy)}m.
+                                {coords.accuracy > 150 && " (Laptop Wi-Fi location detected; 300m or higher recommended)."}
+                              </p>
+                            )}
                             {geoError && (
                               <p className="text-[11px] font-semibold text-amber-700 mt-1">{geoError}</p>
                             )}
@@ -624,6 +656,55 @@ export default function LecturerAttendance() {
                     >
                       <StopCircle size={15} /> End Session
                     </button>
+                  </div>
+                </div>
+
+                {/* Geofence Live Adjustment Bar */}
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-emerald-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-[#0F5A37] shrink-0">
+                      <MapPin size={18} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-gray-900">
+                          Classroom Geofence: {activeSession.radiusMeters === 0 ? "Unlimited (No Restriction)" : `${activeSession.radiusMeters} Meters`}
+                        </span>
+                        <span className="text-[10px] bg-emerald-100 text-[#0F5A37] px-2 py-0.5 rounded-full font-bold">
+                          Live Active
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-medium text-gray-500 mt-0.5">
+                        Expand radius if students inside your room experience laptop/Wi-Fi positioning drift.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-wrap self-stretch md:self-auto justify-end">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 mr-1 hidden sm:inline">
+                      Quick Adjust:
+                    </span>
+                    {[
+                      { label: "150m", value: 150 },
+                      { label: "300m (Rec)", value: 300 },
+                      { label: "500m", value: 500 },
+                      { label: "1000m", value: 1000 },
+                      { label: "Unlimited", value: 0 }
+                    ].map((preset) => (
+                      <button
+                        key={preset.value}
+                        type="button"
+                        onClick={() => handleUpdateRadius(preset.value)}
+                        disabled={updatingRadius}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                          activeSession.radiusMeters === preset.value
+                            ? "bg-[#0F5A37] text-white shadow-md shadow-[#0F5A37]/20 scale-105"
+                            : "bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200"
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 

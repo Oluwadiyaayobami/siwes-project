@@ -38,11 +38,12 @@ export default function ScanPage() {
     setStatus(null);
     setMessage("");
 
-    const submitWithCoords = (lat: number, lng: number) => {
+    const submitWithCoords = (lat: number, lng: number, accuracy?: number) => {
       api.post("/attendance/check-in", {
         ...payloadData,
         studentLat: lat,
-        studentLng: lng
+        studentLng: lng,
+        studentAccuracy: accuracy
       })
       .then((res) => {
         if (res.data.success) {
@@ -71,7 +72,7 @@ export default function ScanPage() {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          submitWithCoords(pos.coords.latitude, pos.coords.longitude);
+          submitWithCoords(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
         },
         (error) => {
           setIsCheckingIn(false);

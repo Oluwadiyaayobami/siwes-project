@@ -4,6 +4,7 @@ const {
   getActiveSession,
   refreshToken,
   closeSession,
+  updateSessionRadius,
   getSessionDetails,
   getLecturerSessions,
   manualMarkStudent,
@@ -20,6 +21,7 @@ router.post('/session/start', protect, authorize('lecturer', 'supervisor', 'admi
 router.get('/session/active', protect, authorize('lecturer', 'supervisor', 'admin'), getActiveSession);
 router.get('/session/:id/refresh-token', protect, authorize('lecturer', 'supervisor', 'admin'), refreshToken);
 router.post('/session/:id/close', protect, authorize('lecturer', 'supervisor', 'admin'), closeSession);
+router.put('/session/:id/update-radius', protect, authorize('lecturer', 'supervisor', 'admin'), updateSessionRadius);
 router.get('/session/:id', protect, getSessionDetails);
 router.get('/sessions/lecturer', protect, authorize('lecturer', 'supervisor', 'admin'), getLecturerSessions);
 router.post('/session/:id/manual-mark', protect, authorize('lecturer', 'supervisor', 'admin'), manualMarkStudent);
