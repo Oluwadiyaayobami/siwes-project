@@ -488,7 +488,6 @@ export default function LecturerAttendance() {
                             <option value="400">400 Meters (Recommended Base — Campus Hall Buffer)</option>
                             <option value="500">500 Meters (Large Auditorium / Complex)</option>
                             <option value="800">800 Meters (Campus Wing)</option>
-                            <option value="0">No Distance Restriction (Allow Anywhere / Testing)</option>
                           </select>
                         </div>
                       </div>
@@ -511,8 +510,7 @@ export default function LecturerAttendance() {
                             <p className="text-xs font-medium text-emerald-800 mt-1">
                               {coords ? (
                                 <>
-                                  Anchor: Lat {coords.lat.toFixed(4)}, Lng {coords.lng.toFixed(4)}.
-                                  {radiusMeters === "0" ? " Geofence: Disabled (Anywhere)." : ` Students must be within ${radiusMeters}m.`}
+                                  Anchor: Lat {coords.lat.toFixed(4)}, Lng {coords.lng.toFixed(4)}. Students must be within {radiusMeters}m.
                                 </>
                               ) : (
                                 "Acquiring your classroom GPS coordinates..."
@@ -687,8 +685,7 @@ export default function LecturerAttendance() {
                       { label: "300m", value: 300 },
                       { label: "400m (Base)", value: 400 },
                       { label: "500m", value: 500 },
-                      { label: "800m", value: 800 },
-                      { label: "Unlimited", value: 0 }
+                      { label: "800m", value: 800 }
                     ].map((preset) => (
                       <button
                         key={preset.value}
