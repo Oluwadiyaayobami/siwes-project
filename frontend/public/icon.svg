@@ -1,0 +1,22 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Smooth emerald gradient background with rounded squircle shape -->
+  <rect width="512" height="512" rx="128" fill="url(#bg-gradient)" />
+  
+  <!-- Outer glowing ring / highlight -->
+  <rect x="16" y="16" width="480" height="480" rx="112" stroke="white" stroke-opacity="0.2" stroke-width="8" />
+  
+  <!-- Stylized letter 'P' -->
+  <path d="M192 128V384M192 128H288C358.7 128 416 185.3 416 256C416 326.7 358.7 384 288 384" stroke="white" stroke-width="64" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M192 256H288" stroke="white" stroke-width="64" stroke-linecap="round" />
+  
+  <!-- Modern clean abstract drop shadow for 'P' -->
+  <path d="M192 144V400M192 144H288C358.7 144 416 201.3 416 272C416 342.7 358.7 400 288 400M192 272H288" stroke="black" stroke-opacity="0.15" stroke-width="64" stroke-linecap="round" stroke-linejoin="round" transform="translate(0, 8)" style="mix-blend-mode: multiply;" />
+
+  <!-- Definition of gradients -->
+  <defs>
+    <linearGradient id="bg-gradient" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#34D399" />
+      <stop offset="1" stop-color="#064E3B" />
+    </linearGradient>
+  </defs>
+</svg>
